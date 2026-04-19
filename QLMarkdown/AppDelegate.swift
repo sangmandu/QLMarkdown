@@ -10,6 +10,10 @@ import Sparkle
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
+    private enum MenuIdentifiers {
+        static let pinCurrentFile = NSUserInterfaceItemIdentifier("pin-current-file")
+        static let alwaysOnTop = NSUserInterfaceItemIdentifier("always-on-top")
+    }
     
     @IBOutlet weak var exampleMenu: NSMenuItem!
     
@@ -65,6 +69,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
         
         Settings.shared.installDependencies()
+        installWindowMenuItems()
         
         if let path = Settings.mermaidCacheFileUrl, !FileManager.default.fileExists(atPath: path.path) {
             // Try to download Mermaid library from web.
@@ -124,6 +129,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         
     }
 
+    private func mainViewController() -> ViewController? {
+        return NSApplication.shared.windows.first(where: { $0.windowController?.contentViewController is ViewController })?.windowController?.contentViewController as? ViewController
+    }
+
+    private func installWindowMenuItems() {
+        guard let menu = NSApplication.shared.windowsMenu else {
+            return
+        }
+        if menu.items.contains(where: { $0.identifier == MenuIdentifiers.pinCurrentFile }) {
+            return
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
+        let pinItem = NSMenuItem(title: "Pin Current File", action: #selector(toggleFilePin(_:)), keyEquivalent: "p")
+        pinItem.keyEquivalentModifierMask = [.command, .shift]
+        pinItem.identifier = MenuIdentifiers.pinCurrentFile
+        pinItem.target = self
+        menu.addItem(pinItem)
+
+        let topItem = NSMenuItem(title: "Always on Top", action: #selector(toggleAlwaysOnTop(_:)), keyEquivalent: "t")
+        topItem.keyEquivalentModifierMask = [.command, .shift]
+        topItem.identifier = MenuIdentifiers.alwaysOnTop
+        topItem.target = self
+        menu.addItem(topItem)
+    }
+
+    @IBAction func toggleFilePin(_ sender: Any) {
+        mainViewController()?.toggleFilePin(sender)
+    }
+
+    @IBAction func toggleAlwaysOnTop(_ sender: Any) {
+        mainViewController()?.toggleAlwaysOnTop(sender)
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
     }
@@ -137,6 +177,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     {
         if menuItem.action == #selector(self.checkForUpdates(_:)) {
             return self.updater?.canCheckForUpdates ?? false
+        }
+        if menuItem.identifier == MenuIdentifiers.pinCurrentFile {
+            let controller = mainViewController()
+            menuItem.state = controller?.isFilePinned == true ? .on : .off
+            return controller?.markdown_file != nil
+        }
+        if menuItem.identifier == MenuIdentifiers.alwaysOnTop {
+            let controller = mainViewController()
+            menuItem.state = controller?.isAlwaysOnTop == true ? .on : .off
+            return controller != nil
         }
         if menuItem.identifier?.rawValue.starts(with: "update_refresh") ?? false {
             menuItem.state = ((NSApplication.shared.delegate as? AppDelegate)?.updater?.updateCheckInterval == TimeInterval(menuItem.tag)) ? .on : .off
@@ -211,4 +261,3 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         NSWorkspace.shared.open(url)
     }
 }
-

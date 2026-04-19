@@ -10,6 +10,11 @@ import Cocoa
 import OSLog
 
 class ViewController: NSViewController {
+    enum WindowState {
+        static let frameAutosaveName = "QLMarkdownMainWindowFrame"
+        static let alwaysOnTopKey = "qlmarkdown-always-on-top"
+    }
+
     @objc dynamic var elapsedTimeLabel: String = ""
     
     @objc dynamic var headsExtension: Bool = Settings.factorySettings.headsExtension {
@@ -319,6 +324,8 @@ class ViewController: NSViewController {
     }
     
     var firstView = true
+    private(set) var isFilePinned = false
+    private(set) var isAlwaysOnTop = UserDefaults.standard.bool(forKey: WindowState.alwaysOnTopKey)
     
     func initStylesPopup(resetStyles: Bool = false) {
         stylesPopup.removeAllItems()
@@ -776,6 +783,10 @@ class ViewController: NSViewController {
     
     @discardableResult
     func openMarkdown(file: URL) -> Bool {
+        if isFilePinned, markdown_file != nil, markdown_file != file {
+            NSSound.beep()
+            return false
+        }
         if edited {
             let alert = NSAlert()
             alert.messageText = "The current markdown file has been modified.\nAre you sure to replace it?"
@@ -806,6 +817,20 @@ class ViewController: NSViewController {
         }
         
         self.openMarkdown(file: src)
+    }
+
+    @IBAction func toggleFilePin(_ sender: Any) {
+        isFilePinned.toggle()
+    }
+
+    @IBAction func toggleAlwaysOnTop(_ sender: Any) {
+        isAlwaysOnTop.toggle()
+        UserDefaults.standard.set(isAlwaysOnTop, forKey: WindowState.alwaysOnTopKey)
+        applyAlwaysOnTop()
+    }
+
+    func applyAlwaysOnTop() {
+        view.window?.level = isAlwaysOnTop ? .floating : .normal
     }
     
     @IBAction func exportMarkdown(_ sender: Any) {
@@ -1225,6 +1250,7 @@ document.addEventListener('scroll', function(e) {
     
     override func viewDidAppear() {
         super.viewDidAppear()
+        applyAlwaysOnTop()
         
         guard firstView else {
             return
@@ -1586,6 +1612,28 @@ extension ViewController: WKScriptMessageHandler {
 // MARK: - PreferencesWindowController
 class PreferencesWindowController: NSWindowController, NSWindowDelegate {
     var askToSave = true
+
+    override func windowDidLoad() {
+        super.windowDidLoad()
+        guard let window else {
+            return
+        }
+        window.delegate = self
+        window.setFrameAutosaveName(ViewController.WindowState.frameAutosaveName)
+        window.setFrameUsingName(ViewController.WindowState.frameAutosaveName)
+        if let contentViewController = self.contentViewController as? ViewController {
+            contentViewController.applyAlwaysOnTop()
+        }
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        window?.saveFrame(usingName: ViewController.WindowState.frameAutosaveName)
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        window?.saveFrame(usingName: ViewController.WindowState.frameAutosaveName)
+    }
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard let contentViewController = self.contentViewController as? ViewController else {
             return true

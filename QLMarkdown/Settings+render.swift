@@ -405,6 +405,11 @@ extension Settings {
                 } else {
                     cmark_syntax_extension_highlight_remove_skipped_languages(ext, "math")
                 }
+                if self.reactExtension.isEnabled {
+                    cmark_syntax_extension_highlight_add_skipped_languages(ext, "react")
+                } else {
+                    cmark_syntax_extension_highlight_remove_skipped_languages(ext, "react")
+                }
                 cmark_syntax_extension_highlight_add_skipped_languages(ext, "markdown")
                 
                 /*
@@ -574,6 +579,27 @@ table.debug td {
             }
         case .link:
             html_debug += "linked (\(Self.mermaidWebUrl.absoluteString))"
+        }
+        html_debug += "</td></tr>\n"
+
+        html_debug += "<tr><td>react extension</td><td>"
+        switch self.reactExtension {
+        case .disabled:
+            html_debug += "off"
+        case .embed:
+            html_debug += "embedded"
+            if let file = self.reactFileUrl {
+                html_debug += " (\(file.path)"
+
+                if file.isFileURL && !FileManager.default.fileExists(atPath: file.path) {
+                    html_debug += " <b>NOT FOUND!</b>"
+                }
+                html_debug += ")"
+            } else {
+                html_debug += " (fallback: \(Self.reactWebUrl.absoluteString))"
+            }
+        case .link:
+            html_debug += "linked (\(Self.reactWebUrl.absoluteString))"
         }
         html_debug += "</td></tr>\n"
 
@@ -845,6 +871,11 @@ securityLevel: 'strict'
 """
         }
 
+        if !self.renderAsCode, !self.reactExtension.isDisabled, processedBody.contains("language-react") {
+            processedBody = transformReactBlocks(processedBody)
+            s_footer += getReactScriptCode()
+        }
+
         let style = css_doc + css_highlight + css_doc_extended
         let wrapper_open = self.renderAsCode ? "<pre class='hl'>" : "<article class='markdown-body'>"
         let wrapper_close = self.renderAsCode ? "</pre>" : "</article>"
@@ -937,6 +968,87 @@ securityLevel: 'strict'
         )
 
         return result
+    }
+
+    private func getReactScriptCode() -> String {
+        guard let mode = self.reactExtension.getMode() else {
+            return ""
+        }
+
+        let reactScript: String
+        let reactDOMScript: String
+        let babelScript: String
+        if mode.embed {
+            reactScript = JSExtension.embed(url: self.reactFileUrl ?? Self.reactWebUrl).getScriptCode()
+            reactDOMScript = JSExtension.embed(url: self.reactDOMFileUrl ?? Self.reactDOMWebUrl).getScriptCode()
+            babelScript = JSExtension.embed(url: self.babelFileUrl ?? Self.babelWebUrl).getScriptCode()
+        } else {
+            reactScript = JSExtension.link(url: Self.reactWebUrl).getScriptCode()
+            reactDOMScript = JSExtension.link(url: Self.reactDOMWebUrl).getScriptCode()
+            babelScript = JSExtension.link(url: Self.babelWebUrl).getScriptCode()
+        }
+
+        return reactScript + reactDOMScript + babelScript + """
+<script type="text/javascript">
+(function() {
+    document.querySelectorAll('.react-component').forEach(function(el) {
+        var source = el.textContent || '';
+        source = source.replace(/export\\s+default\\s+/g, 'module.exports.default = ');
+        source = source.replace(/export\\s+/g, '');
+        var container = document.createElement('div');
+        container.className = 'react-render';
+        el.parentNode.replaceChild(container, el);
+        try {
+            var transformed = Babel.transform(source, { presets: ['react'] }).code;
+            var mod = { exports: {} };
+            var fn = new Function('React', 'ReactDOM', 'module', 'exports', transformed);
+            fn(React, ReactDOM, mod, mod.exports);
+            var Component = mod.exports.default || mod.exports;
+            if (typeof Component === 'function') {
+                if (ReactDOM.render) {
+                    ReactDOM.render(React.createElement(Component), container);
+                } else if (ReactDOM.createRoot) {
+                    ReactDOM.createRoot(container).render(React.createElement(Component));
+                }
+            } else {
+                var missing = document.createElement('pre');
+                missing.style.color = '#94a3b8';
+                missing.style.fontSize = '12px';
+                missing.textContent = 'No default export found';
+                container.appendChild(missing);
+            }
+        } catch(e) {
+            var error = document.createElement('pre');
+            error.style.color = '#ef4444';
+            error.style.fontSize = '12px';
+            error.style.padding = '8px';
+            error.style.background = '#fef2f2';
+            error.style.borderRadius = '6px';
+            error.textContent = e.message;
+            container.appendChild(error);
+        }
+    });
+})();
+</script>
+"""
+    }
+
+    private func transformReactBlocks(_ html: String) -> String {
+        let pattern = #"<pre[^>]*>\s*<code[^>]*class="[^"]*language-react[^"]*"[^>]*>([\s\S]*?)</code>\s*</pre>"#
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            os_log("Failed to create react regex pattern", log: OSLog.rendering, type: .error)
+            return html
+        }
+
+        let range = NSRange(html.startIndex..., in: html)
+
+        return regex.stringByReplacingMatches(
+            in: html,
+            options: [],
+            range: range,
+            withTemplate: #"<div class="react-component" style="display:none">$1</div>"#
+        )
     }
 
     internal func renderYaml(_ yaml: [(key: AnyHashable, value: Any)]) -> String {

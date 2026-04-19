@@ -25,9 +25,9 @@ extension JSExtension {
             }
         case .embed(let url):
             if url == cacheUrl {
-                return .link(url: nil)
+                return .embed(url: nil)
             } else {
-                return .link(url: url)
+                return .embed(url: url)
             }
         }
     }
@@ -193,9 +193,9 @@ extension Settings {
         
         defaults.set(strikethroughExtension.rawValue, forKey: Self.CodingKeys.strikethroughExtension.rawValue)
         
-        // Prevent to save the url info if is the predefined value on the math/mermaid extension.
         defaults.set(mathExtension.stripDefaultUrl(cacheUrl: self.mathJaxFileUrl, cdnUrl: Self.mathJaxWebUrl).toDict(), forKey: Self.CodingKeys.mathExtension.rawValue)
         defaults.set(mermaidExtension.stripDefaultUrl(cacheUrl: self.mermaidFileUrl, cdnUrl: Self.mermaidWebUrl).toDict(), forKey: Self.CodingKeys.mermaidExtension.rawValue)
+        defaults.set(reactExtension.stripDefaultUrl(cacheUrl: self.reactFileUrl, cdnUrl: Self.reactWebUrl).toDict(), forKey: Self.CodingKeys.reactExtension.rawValue)
         
         defaults.set(mentionExtension, forKey: Self.CodingKeys.mentionExtension.rawValue)
         defaults.set(checkboxExtension, forKey: Self.CodingKeys.checkboxExtension.rawValue)

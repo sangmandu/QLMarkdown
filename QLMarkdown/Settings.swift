@@ -228,6 +228,7 @@ class Settings: Codable {
         case inlineImageExtension
         case mathExtension
         case mermaidExtension
+        case reactExtension
         case mentionExtension
         case subExtension
         case supExtension
@@ -455,6 +456,7 @@ class Settings: Codable {
     var inlineImageExtension: Bool = true
     var mathExtension: JSExtension = .link(url: nil)
     var mermaidExtension: JSExtension = .link(url: nil)
+    var reactExtension: JSExtension = .embed(url: nil)
     var mentionExtension: Bool = false
     var subExtension: Bool = false
     var supExtension: Bool = false
@@ -522,6 +524,7 @@ class Settings: Codable {
         
         self.mathExtension = try container.decode(JSExtension.self, forKey:.mathExtension)
         self.mermaidExtension = try container.decode(JSExtension.self, forKey:.mermaidExtension)
+        self.reactExtension = (try? container.decode(JSExtension.self, forKey:.reactExtension)) ?? .embed(url: nil)
         
         self.mentionExtension = try container.decode(Bool.self, forKey:.mentionExtension)
         self.checkboxExtension = try container.decode(Bool.self, forKey:.checkboxExtension)
@@ -598,6 +601,7 @@ class Settings: Codable {
         
         try container.encode(self.mathExtension, forKey: .mathExtension)
         try container.encode(self.mermaidExtension, forKey: .mermaidExtension)
+        try container.encode(self.reactExtension, forKey: .reactExtension)
         
         try container.encode(self.mentionExtension, forKey: .mentionExtension)
         try container.encode(self.checkboxExtension, forKey: .checkboxExtension)
@@ -689,6 +693,7 @@ class Settings: Codable {
         
         self.mathExtension = s.mathExtension
         self.mermaidExtension = s.mermaidExtension
+        self.reactExtension = s.reactExtension
         self.mentionExtension = s.mentionExtension
         self.checkboxExtension = s.checkboxExtension
         self.headsExtension = s.headsExtension
@@ -759,6 +764,9 @@ class Settings: Codable {
         }
         if let ext = defaultsDomain[Self.CodingKeys.mermaidExtension.rawValue] as? [String: Any] {
             mermaidExtension = JSExtension(from: ext) ?? .disabled
+        }
+        if let ext = defaultsDomain[Self.CodingKeys.reactExtension.rawValue] as? [String: Any] {
+            reactExtension = JSExtension(from: ext) ?? .disabled
         }
         if let ext = defaultsDomain[Self.CodingKeys.mentionExtension.rawValue] as? Bool {
             mentionExtension = ext
@@ -895,6 +903,7 @@ class Settings: Codable {
         
         self.mathExtension.sanitize(cacheUrl: mathJaxFileUrl, cdnUrl: Self.mathJaxWebUrl, allowLinkFile: allowLinkFile)
         self.mermaidExtension.sanitize(cacheUrl: mermaidFileUrl, cdnUrl: Self.mermaidWebUrl, allowLinkFile: allowLinkFile)
+        self.reactExtension.sanitize(cacheUrl: reactFileUrl, cdnUrl: Self.reactWebUrl, allowLinkFile: allowLinkFile)
         
         if self.subExtension && self.strikethroughExtension == .single {
             messages.append("The Sub extension is incompatibile with the Strikethrough extension when recognize a single tile (~).")
@@ -938,6 +947,9 @@ class Settings: Codable {
     func installDependencies(override: Bool = false) {
         try? installDep(forResource: "mermaid.min", withExtension: "js", to: Self.mermaidCacheFileUrl, overwrite: override)
         try? installDep(forResource: "tex-mml-chtml", withExtension: "js", to: Self.mathJaxCacheFileUrl, overwrite: override)
+        try? installDep(forResource: "react.production.min", withExtension: "js", to: Self.reactCacheFileUrl, overwrite: override)
+        try? installDep(forResource: "react-dom.production.min", withExtension: "js", to: Self.reactDOMCacheFileUrl, overwrite: override)
+        try? installDep(forResource: "babel.min", withExtension: "js", to: Self.babelCacheFileUrl, overwrite: override)
         
         try? installDep(forResource: "highlight", withExtension: nil, to: Settings.syntaxHighlightSupportCacheUrl, overwrite: override)
     }
@@ -1045,6 +1057,46 @@ class Settings: Codable {
         task.resume()
     }
     
+}
+
+// MARK: - React support
+extension Settings {
+    static let reactWebUrl = URL(string: "https://unpkg.com/react@17/umd/react.production.min.js")!
+    static let reactDOMWebUrl = URL(string: "https://unpkg.com/react-dom@17/umd/react-dom.production.min.js")!
+    static let babelWebUrl = URL(string: "https://unpkg.com/@babel/standalone/babel.min.js")!
+
+    static var reactCacheFileUrl: URL? {
+        return Self.jsFolder?.appendingPathComponent("react.production.min.js")
+    }
+
+    static var reactDOMCacheFileUrl: URL? {
+        return Self.jsFolder?.appendingPathComponent("react-dom.production.min.js")
+    }
+
+    static var babelCacheFileUrl: URL? {
+        return Self.jsFolder?.appendingPathComponent("babel.min.js")
+    }
+
+    var reactFileUrl: URL? {
+        if let url = Self.reactCacheFileUrl, FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        return self.resourceBundle.url(forResource: "react.production.min", withExtension: "js")
+    }
+
+    var reactDOMFileUrl: URL? {
+        if let url = Self.reactDOMCacheFileUrl, FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        return self.resourceBundle.url(forResource: "react-dom.production.min", withExtension: "js")
+    }
+
+    var babelFileUrl: URL? {
+        if let url = Self.babelCacheFileUrl, FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        return self.resourceBundle.url(forResource: "babel.min", withExtension: "js")
+    }
 }
 
 // MARK: - Mermaid support

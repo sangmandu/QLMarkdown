@@ -13,12 +13,11 @@ import external_launcher
 
 class MyWKWebView: WKWebView {
     override var canBecomeKeyView: Bool {
-        return false
+        return true
     }
 
     override func becomeFirstResponder() -> Bool {
-        // Quick Look window do not allow first responder child.
-        return false
+        return true
     }
 }
 
@@ -70,8 +69,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
         // Create a configuration for the preferences
         let configuration = WKWebViewConfiguration()
-        // Enable JavaScript for unsafe HTML with inline images, or when Mermaid/Math extensions are active
-        configuration.preferences.javaScriptEnabled = (settings.unsafeHTMLOption && settings.inlineImageExtension) || !settings.mermaidExtension.isDisabled || !settings.mathExtension.isDisabled
+        configuration.preferences.javaScriptEnabled = (settings.unsafeHTMLOption && settings.inlineImageExtension) || !settings.mermaidExtension.isDisabled || !settings.mathExtension.isDisabled || !settings.reactExtension.isDisabled
         configuration.allowsAirPlayForMediaPlayback = false
 
         self.webView = MyWKWebView(frame: previewRect, configuration: configuration)

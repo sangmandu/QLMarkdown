@@ -248,6 +248,12 @@
 		8382D05E2664052E00210A0A /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = 8382D05D2664052E00210A0A /* Yams */; };
 		838715FE2DE44661000DC216 /* libwrapper_highlight.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 83E7FEF7258FBF9F003ECF9B /* libwrapper_highlight.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		839E5B342D1C9DA600AD63BD /* default.css in Resources */ = {isa = PBXBuildFile; fileRef = 83598F22258263C0004664D3 /* default.css */; };
+		83AABB00000000000000B001 /* react.production.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 83AABB00000000000000B010 /* react.production.min.js */; };
+		83AABB00000000000000B002 /* react.production.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 83AABB00000000000000B010 /* react.production.min.js */; };
+		83AABB00000000000000B003 /* react-dom.production.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 83AABB00000000000000B020 /* react-dom.production.min.js */; };
+		83AABB00000000000000B004 /* react-dom.production.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 83AABB00000000000000B020 /* react-dom.production.min.js */; };
+		83AABB00000000000000B005 /* babel.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 83AABB00000000000000B030 /* babel.min.js */; };
+		83AABB00000000000000B006 /* babel.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 83AABB00000000000000B030 /* babel.min.js */; };
 		83A9C28E2F1D47B1005B668D /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 834D676827EDF554006BECBE /* libcurl.tbd */; };
 		83A9C28F2F1D47BC005B668D /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 834D676827EDF554006BECBE /* libcurl.tbd */; };
 		83A9C2902F1D47D8005B668D /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 834D676827EDF554006BECBE /* libcurl.tbd */; };
@@ -655,6 +661,9 @@
 		838109C625840429000AFE3C /* checkbox.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = checkbox.c; sourceTree = "<group>"; };
 		838A5D5C29F1139200D704AB /* makefile2.makefile */ = {isa = PBXFileReference; lastKnownFileType = text; path = makefile2.makefile; sourceTree = "<group>"; usesTabs = 1; };
 		838A5D5E29F1139200D704AB /* makefile2.makefile */ = {isa = PBXFileReference; lastKnownFileType = text; path = makefile2.makefile; sourceTree = "<group>"; usesTabs = 1; };
+		83AABB00000000000000B010 /* react.production.min.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = react.production.min.js; sourceTree = "<group>"; };
+		83AABB00000000000000B020 /* react-dom.production.min.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = react-dom.production.min.js; sourceTree = "<group>"; };
+		83AABB00000000000000B030 /* babel.min.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = babel.min.js; sourceTree = "<group>"; };
 		83AD13762F852B33004B91FB /* preview_shortcut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = preview_shortcut.png; sourceTree = "<group>"; };
 		83AD13772F85305F004B91FB /* system_setings1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = system_setings1.png; sourceTree = "<group>"; };
 		83AD13782F8535C3004B91FB /* mathjax_menu.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = mathjax_menu.png; sourceTree = "<group>"; };
@@ -1058,6 +1067,9 @@
 			isa = PBXGroup;
 			children = (
 				83598F22258263C0004664D3 /* default.css */,
+				83AABB00000000000000B010 /* react.production.min.js */,
+				83AABB00000000000000B020 /* react-dom.production.min.js */,
+				83AABB00000000000000B030 /* babel.min.js */,
 				83E7FEF0258FBF37003ECF9B /* highlight */,
 			);
 			path = Resources;
@@ -1430,6 +1442,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				839E5B342D1C9DA600AD63BD /* default.css in Resources */,
+				83AABB00000000000000B002 /* react.production.min.js in Resources */,
+				83AABB00000000000000B004 /* react-dom.production.min.js in Resources */,
+				83AABB00000000000000B006 /* babel.min.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1443,6 +1458,9 @@
 				83598E6C2581880A004664D3 /* Main.storyboard in Resources */,
 				83E7FEF1258FBF37003ECF9B /* highlight in Resources */,
 				830277F52C60B3E20066EBCC /* default.css in Resources */,
+				83AABB00000000000000B001 /* react.production.min.js in Resources */,
+				83AABB00000000000000B003 /* react-dom.production.min.js in Resources */,
+				83AABB00000000000000B005 /* babel.min.js in Resources */,
 				837F97D6271EA12A009F4605 /* qlmarkdown_cli in Resources */,
 				83A9C2922F1D59F9005B668D /* examples in Resources */,
 			);
