@@ -12,6 +12,7 @@ import OSLog
 class ViewController: NSViewController {
     enum WindowState {
         static let frameAutosaveName = "QLMarkdownMainWindowFrame"
+        static let explicitFrameKey = "qlmarkdown-main-window-frame"
         static let alwaysOnTopKey = "qlmarkdown-always-on-top"
     }
 
@@ -1621,21 +1622,23 @@ class PreferencesWindowController: NSWindowController, NSWindowDelegate {
         window.delegate = self
         window.setFrameAutosaveName(ViewController.WindowState.frameAutosaveName)
         window.setFrameUsingName(ViewController.WindowState.frameAutosaveName)
+        restoreSavedFrame(for: window)
         if let contentViewController = self.contentViewController as? ViewController {
             contentViewController.applyAlwaysOnTop()
         }
     }
 
     func windowDidMove(_ notification: Notification) {
-        window?.saveFrame(usingName: ViewController.WindowState.frameAutosaveName)
+        saveCurrentFrame()
     }
 
     func windowDidResize(_ notification: Notification) {
-        window?.saveFrame(usingName: ViewController.WindowState.frameAutosaveName)
+        saveCurrentFrame()
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard let contentViewController = self.contentViewController as? ViewController else {
+            saveCurrentFrame()
             return true
         }
         if self.askToSave && contentViewController.isDirty {
@@ -1656,6 +1659,7 @@ class PreferencesWindowController: NSWindowController, NSWindowDelegate {
                 // Do not close the window
                 return false
             default:
+                saveCurrentFrame()
                 return true
             }
         }
@@ -1675,6 +1679,7 @@ class PreferencesWindowController: NSWindowController, NSWindowDelegate {
                 // Save the markdown file
                 if contentViewController.exportCurrentMarkdown(to: file) {
                     contentViewController.edited = false
+                    saveCurrentFrame()
                     return true
                 } else {
                     return false
@@ -1684,10 +1689,47 @@ class PreferencesWindowController: NSWindowController, NSWindowDelegate {
                 return false
             default:
                 contentViewController.edited = false
+                saveCurrentFrame()
                 return true
             }
         }
+        saveCurrentFrame()
         return true
+    }
+
+    private func restoreSavedFrame(for window: NSWindow) {
+        guard let frameString = UserDefaults.standard.string(forKey: ViewController.WindowState.explicitFrameKey) else {
+            return
+        }
+        let savedFrame = NSRectFromString(frameString)
+        guard savedFrame.width > 0, savedFrame.height > 0 else {
+            return
+        }
+        window.setFrame(constrainToVisibleScreens(savedFrame), display: false)
+    }
+
+    private func saveCurrentFrame() {
+        guard let window else {
+            return
+        }
+        window.saveFrame(usingName: ViewController.WindowState.frameAutosaveName)
+        UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: ViewController.WindowState.explicitFrameKey)
+    }
+
+    private func constrainToVisibleScreens(_ frame: NSRect) -> NSRect {
+        let visibleFrames = NSScreen.screens.map(\.visibleFrame)
+        if visibleFrames.contains(where: { $0.intersects(frame) }) {
+            return frame
+        }
+        guard let visibleFrame = NSScreen.main?.visibleFrame else {
+            return frame
+        }
+        var constrained = frame
+        constrained.size.width = min(constrained.width, visibleFrame.width)
+        constrained.size.height = min(constrained.height, visibleFrame.height)
+        constrained.origin.x = visibleFrame.midX - constrained.width / 2
+        constrained.origin.y = visibleFrame.midY - constrained.height / 2
+        return constrained
     }
 }
 
