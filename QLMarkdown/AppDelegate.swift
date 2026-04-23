@@ -55,18 +55,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         
         self.userDriver = SPUStandardUserDriver(hostBundle: hostBundle, delegate: nil)
         self.updater = SPUUpdater(hostBundle: hostBundle, applicationBundle: applicationBundle, userDriver: self.userDriver!, delegate: nil)
-        
-        do {
-            try self.updater!.start()
-        } catch {
-            print("Failed to start updater with error: \(error)")
-            
-            let alert = NSAlert()
-            alert.messageText = "Updater Error"
-            alert.informativeText = "The Updater failed to start. For detailed error information, check the Console.app log."
-            alert.addButton(withTitle: "Close").keyEquivalent = "\u{1b}"
-            alert.runModal()
-        }
+        self.updater?.automaticallyChecksForUpdates = false
         
         Settings.shared.installDependencies()
         installWindowMenuItems()
