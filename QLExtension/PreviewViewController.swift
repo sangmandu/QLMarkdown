@@ -172,7 +172,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             text += msg
         }
 
-        let html = settings.getCompleteHTML(title: url.lastPathComponent, body: text)
+        let fileExt = url.pathExtension.lowercased()
+        let isNonMarkdown = fileExt == "yaml" || fileExt == "yml"
+        let html = settings.getCompleteHTML(title: url.lastPathComponent, body: text, forceCodeView: isNonMarkdown)
 
         return html
     }

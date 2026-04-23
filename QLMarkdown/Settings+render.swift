@@ -789,7 +789,7 @@ table.debug td {
      *  - header: Header block.
      *  - footer: Code to put at the end of the body.
      */
-    func getCompleteHTML(title: String, body: String, header: String = "", footer: String = "") -> String {
+    func getCompleteHTML(title: String, body: String, header: String = "", footer: String = "", forceCodeView: Bool = false) -> String {
         var css_doc = ""
         var css_doc_extended = ""
         
@@ -807,7 +807,8 @@ table.debug td {
             return "<style type='text/css'>\(code)\n</style>\n"
         }
             
-        if !self.renderAsCode {
+        let isCodeView = self.renderAsCode || forceCodeView
+        if !isCodeView {
             let css = (self.customCSSFetched ? self.customCSSCode : self.getCustomCSSCode()) ?? ""
             css_doc_extended = formatCSS(css)
             if css_doc_extended.isEmpty || !self.customCSSOverride {
@@ -816,7 +817,7 @@ table.debug td {
         }
             
         var css_highlight: String = ""
-        if self.renderAsCode {
+        if isCodeView {
             var exit_code: Int32 = 0
             
             exit_code = 0
@@ -856,7 +857,7 @@ table.debug td {
         }
         css_highlight = formatCSS(css_highlight)
         
-        if !self.renderAsCode, !self.mathExtension.isDisabled, let ext = cmark_find_syntax_extension("math"), cmark_syntax_extension_math_get_rendered_count(ext) > 0 || body.contains("$") {
+        if !isCodeView, !self.mathExtension.isDisabled, let ext = cmark_find_syntax_extension("math"), cmark_syntax_extension_math_get_rendered_count(ext) > 0 || body.contains("$") {
             s_header += """
 <script type="text/javascript">
 MathJax = {
@@ -884,7 +885,7 @@ MathJax = {
 
         // Mermaid diagrams support
         var processedBody = body
-        if !self.renderAsCode, !self.mermaidExtension.isDisabled, body.contains("language-mermaid") {
+        if !isCodeView, !self.mermaidExtension.isDisabled, body.contains("language-mermaid") {
             // Transform mermaid code blocks to mermaid divs
             processedBody = transformMermaidBlocks(body)
 
@@ -901,15 +902,15 @@ securityLevel: 'strict'
 """
         }
 
-        if !self.renderAsCode, !self.reactExtension.isDisabled, processedBody.contains("language-react") {
+        if !isCodeView, !self.reactExtension.isDisabled, processedBody.contains("language-react") {
             processedBody = transformReactBlocks(processedBody)
             s_footer += getReactScriptCode()
         }
 
         let style = css_doc + css_highlight + css_doc_extended
-        let wrapper_open = self.renderAsCode ? "<pre class='hl'>" : "<article class='markdown-body'>"
-        let wrapper_close = self.renderAsCode ? "</pre>" : "</article>"
-        let body_style = self.renderAsCode ? " class='hl'" : ""
+        let wrapper_open = isCodeView ? "<pre class='hl'>" : "<article class='markdown-body'>"
+        let wrapper_close = isCodeView ? "</pre>" : "</article>"
+        let body_style = isCodeView ? " class='hl'" : ""
         let html =
 """
 <!doctype html>
