@@ -1,0 +1,23 @@
+# Sample YAML file for Quick Look preview testing
+name: QLMarkdown
+version: 1.0.0
+description: Quick Look extension for markdown and YAML files
+
+features:
+  - markdown_preview
+  - syntax_highlighting
+  - yaml_support
+
+settings:
+  theme:
+    light: acid
+    dark: zenburn
+  line_numbers: true
+  word_wrap: false
+
+authors:
+  - name: SBAREX
+    role: maintainer
+    active: true
+
+tags: [quicklook, markdown, yaml, macos]

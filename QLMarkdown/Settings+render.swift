@@ -70,6 +70,13 @@ extension Settings {
      *   - baseDir: Path to the folder containing the source file. Used to manage relative paths within the code.
      */
     func render(text: String, filename: String, forAppearance appearance: Appearance, baseDir: String) throws -> String {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        if ext == "yaml" || ext == "yml" {
+            if let code = self.renderAsHighlightedCode(text: text, language: "yaml", forAppearance: appearance) {
+                return code
+            }
+        }
+
         if self.renderAsCode, let code = self.renderAsSourceCode(text: text, forAppearance: appearance, baseDir: baseDir) {
             return code
         }
@@ -736,8 +743,31 @@ table.debug td {
             return nil
         }
     }
-    
-    
+
+    func renderAsHighlightedCode(text: String, language: String, forAppearance appearance: Appearance) -> String? {
+        if let path = getHighlightSupportPath() {
+            cmark_syntax_highlight_init("\(path)/".cString(using: .utf8))
+        } else {
+            os_log("Unable to found the `highlight` support dir!", log: OSLog.rendering, type: .error)
+        }
+
+        let theme = Self.isLightAppearance ? "acid" : "zenburn"
+
+        highlight_init_generator()
+        highlight_set_print_line_numbers(self.syntaxLineNumbersOption ? 1 : 0)
+        highlight_set_formatting_mode(Int32(self.syntaxWordWrapOption), Int32(self.syntaxTabsOption))
+        highlight_set_current_font("ui-monospace, -apple-system, BlinkMacSystemFont, sans-serif", "10")
+
+        if let s = colorizeCode(text, language, theme, true, self.syntaxLineNumbersOption) {
+            defer {
+                s.deallocate()
+            }
+            return String(cString: s)
+        } else {
+            return nil
+        }
+    }
+
     /**
      * Embed a JS library.
      * - parameters:
