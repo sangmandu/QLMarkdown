@@ -26,6 +26,19 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
     var handler: ((Error?) -> Void)? = nil
 
+    // Live reload: Quick Look renders once and never asks again while the panel is open,
+    // and may even reuse this view on reopen. Poll the file's stamp and re-render on change.
+    private var previewURL: URL?
+    private var lastFileStamp: FileStamp?
+    private var reloadTimer: Timer?
+    private var pendingScrollY: Double?
+
+    struct FileStamp: Equatable {
+        let inode: UInt64
+        let size: UInt64
+        let mtime: Date
+    }
+
     override var nibName: NSNib.Name? {
         return NSNib.Name("PreviewViewController")
     }
@@ -36,6 +49,52 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         // This code will not be called on macOS 12 Monterey with QLIsDataBasedPreview set.
 
         self.launcherService = nil
+        stopReloadTimer()
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        // The host may show a reused view on reopen without calling preparePreviewOfFile.
+        reloadIfFileChanged()
+        startReloadTimer()
+    }
+
+    static func fileStamp(of url: URL) -> FileStamp? {
+        guard let attr = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
+        return FileStamp(
+            inode: (attr[.systemFileNumber] as? NSNumber)?.uint64Value ?? 0,
+            size: (attr[.size] as? NSNumber)?.uint64Value ?? 0,
+            mtime: (attr[.modificationDate] as? Date) ?? .distantPast
+        )
+    }
+
+    private func startReloadTimer() {
+        guard reloadTimer == nil, previewURL != nil else { return }
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.reloadIfFileChanged()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        reloadTimer = timer
+    }
+
+    private func stopReloadTimer() {
+        reloadTimer?.invalidate()
+        reloadTimer = nil
+    }
+
+    private func reloadIfFileChanged() {
+        guard let url = previewURL, handler == nil else { return }
+        // Atomic saves briefly remove the file: keep the old preview and retry on the next tick.
+        guard let stamp = Self.fileStamp(of: Settings.getMarkdownFile(from: url)) else { return }
+        guard stamp != lastFileStamp else { return }
+        lastFileStamp = stamp
+
+        os_log("File changed, reloading preview for %{public}s", log: OSLog.quickLookExtension, type: .info, url.path)
+        guard let html = try? renderMD(url: url), let webView = self.webView else { return }
+        webView.evaluateJavaScript("window.scrollY") { [weak self] result, _ in
+            self?.pendingScrollY = result as? Double
+            webView.loadHTMLString(html, baseURL: url.deletingLastPathComponent())
+        }
     }
 
     override func loadView() {
@@ -108,6 +167,8 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
         do {
             self.handler = handler
+            self.previewURL = url
+            self.lastFileStamp = Self.fileStamp(of: Settings.getMarkdownFile(from: url))
 
             let html = try renderMD(url: url)
             self.webView?.isHidden = true // hide the webview until complete rendering
@@ -182,6 +243,11 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
 extension PreviewViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if let y = self.pendingScrollY {
+            self.pendingScrollY = nil
+            webView.evaluateJavaScript("window.scrollTo(0, \(y))", completionHandler: nil)
+        }
+        startReloadTimer()
         if let handler = self.handler {
             handler(nil)
             self.handler = nil
